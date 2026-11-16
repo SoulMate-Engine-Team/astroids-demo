@@ -1,3 +1,4 @@
 [submodule "soulmate-engine-main"]
 	path = soulmate-engine-main
+	branch = development
 	url = https://github.com/SoulMate-Engine-Team/soulmate-engine-main.git
