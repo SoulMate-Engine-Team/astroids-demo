@@ -26,7 +26,6 @@ public sealed class Asteroids : GameLogic
 	private AudioEngine engine;
 	private Texture2D shipSpriteSheet;
 	private TextureAtlas asteroidAtlas;
-	private Texture2D explosionParticleSprite;
 	private Texture2D bulletSprite;
 
 	private Sprite ship;
@@ -40,6 +39,7 @@ public sealed class Asteroids : GameLogic
 	private const float rotationSpeed = 5;
 	private const float shipAcceleration = 500;
 	private const float friction = 100;
+	private const float brakeDeceleration = 600;
 	private const float maxShipSpeed = 600;
 	private const float bulletSpeed = 1000;
 	private const float bulletCooldownMax = 0.15F;
@@ -63,6 +63,7 @@ public sealed class Asteroids : GameLogic
 	{
 		WindowManager.GameWindow!.Center();
 		GraphicsEnvironment.GetAPI().EnableCapability(EnableCap.Blend);
+		GraphicsEnvironment.GetAPI().BlendFunc();
 
 		var basePath = Path.Combine(AppContext.BaseDirectory, "../../../resources");
 
@@ -84,11 +85,10 @@ public sealed class Asteroids : GameLogic
 			shipSpriteSheet = Texture2D.FromFile(Path.Combine(basePath, "spaceship_spritesheet.png"));
 			var asteroidSpriteSheet = Texture2D.FromFile(Path.Combine(basePath, "asteroids_spritesheet.png"));
 			asteroidAtlas = new(asteroidSpriteSheet, new(82, 75));
-			explosionParticleSprite = Texture2D.FromFile(Path.Combine(basePath, "explosion_particle.png"));
 			bulletSprite = Texture2D.FromFile(Path.Combine(basePath, "bullet.png"));
 		}
 
-		foreach (var res in new[] { shipSpriteSheet, asteroidAtlas.Texture, explosionParticleSprite, bulletSprite })
+		foreach (var res in new[] { shipSpriteSheet, asteroidAtlas.Texture, bulletSprite })
 		{
 			res.MagFilter = TextureMagFilter.Nearest;
 			res.MinFilter = TextureMinFilter.Nearest;
@@ -125,6 +125,7 @@ public sealed class Asteroids : GameLogic
 		var wnd = WindowManager.GameWindow!;
 
 		bool thrusting = inputModule.IsKeyPressed(Key.W) || inputModule.IsKeyPressed(Key.Up);
+		bool braking = inputModule.IsKeyPressed(Key.S) || inputModule.IsKeyPressed(Key.Down);
 		Vector2 forward = RotateAround(-Vector2.UnitY, ship.Rotation, Vector2.Zero);
 
 		if (thrusting)
@@ -133,7 +134,9 @@ public sealed class Asteroids : GameLogic
 		}
 
 		float speed = shipVelocity.Length;
-		speed = MathF.Max(0f, speed - friction * dt);
+		// Braking shrinks the speed toward 0 along the current direction; the clamp at 0 means it never reverses.
+		float deceleration = friction + (braking ? brakeDeceleration : 0f);
+		speed = MathF.Max(0f, speed - deceleration * dt);
 		speed = MathF.Min(speed, maxShipSpeed);
 		shipVelocity = shipVelocity.Normalized * speed;
 
@@ -215,7 +218,7 @@ public sealed class Asteroids : GameLogic
 			{
 				continue;
 			}
-			engine.PlayOneShot(explodeBuffer, new AudioOneShotSettings() with { Volume = 0.15F });
+			engine.PlayOneShot(explodeBuffer);
 			if (col.Frame == asteroidAtlas.TileCount - 1)
 			{
 				asteroids.Remove(colliding);
@@ -226,9 +229,9 @@ public sealed class Asteroids : GameLogic
 			RendererModule.Drawables.Remove(colliding.Sprite);
 			asteroids.Remove(colliding);
 
-			var angle1 = colliding.Sprite.Rotation + MathF.PI / 2;
+			var angle1 = colliding.Sprite.Rotation + MathF.PI / 8;
 			var pos1 = colliding.Sprite.Position + RotateAround(Vector2.UnitY, angle1, Vector2.Zero);
-			var angle2 = colliding.Sprite.Rotation - MathF.PI / 2;
+			var angle2 = colliding.Sprite.Rotation - MathF.PI / 8;
 			var pos2 = colliding.Sprite.Position + RotateAround(Vector2.UnitY, angle2, Vector2.Zero);
 
 			var frame = colliding.Frame + 1;
