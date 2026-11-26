@@ -35,7 +35,7 @@ public sealed class Asteroids : GameLogic
 	private readonly List<Asteroid> asteroids = [];
 
 	private const float maxAsteroidSpawnTimer = 0.75F;
-	private const float maxAsteroidCount = 3;
+	private const float maxAsteroidCount = 4;
 	private const float asteroidSpeed = 150;
 	private const float rotationSpeed = 5;
 	private const float shipAcceleration = 500;
@@ -263,7 +263,9 @@ public sealed class Asteroids : GameLogic
 			bullets.Remove(bullet);
 			RendererModule.Drawables.Remove(bullet);
 		}
+		points += newAsteroids.Count * 75;
 
+		bool gameOver = false;
 		foreach (var asteroid in asteroids)
 		{
 			asteroid.Sprite.Position += 
@@ -271,6 +273,17 @@ public sealed class Asteroids : GameLogic
 				MathF.Sqrt(asteroid.Frame + 1) * 
 				RotateAround(-Vector2.UnitY, asteroid.Sprite.Rotation, Vector2.Zero);
 			WrapSpritePosition(asteroid.Sprite);
+			gameOver |= SpriteIntersecting(ship, asteroid.Sprite);
+		}
+		if (gameOver)
+		{
+			ship.Position = new Vector2(wnd.Size.X, wnd.Size.Y) / 2;
+			points = 0;
+			asteroids.Clear();
+			bullets.Clear();
+			RendererModule.Drawables.Clear();
+			RendererModule.Drawables.Add(ship);
+			shipVelocity = Vector2.Zero;
 		}
 
 		wnd.Title = $"Points {points}";
