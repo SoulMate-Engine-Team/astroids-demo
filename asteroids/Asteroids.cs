@@ -34,7 +34,8 @@ public sealed class Asteroids : GameLogic
 	private readonly List<Sprite> bullets = [];
 	private readonly List<Asteroid> asteroids = [];
 
-	private const float maxAsteroidCount = 12;
+	private const float maxAsteroidSpawnTimer = 0.75F;
+	private const float maxAsteroidCount = 3;
 	private const float asteroidSpeed = 150;
 	private const float rotationSpeed = 5;
 	private const float shipAcceleration = 500;
@@ -44,6 +45,7 @@ public sealed class Asteroids : GameLogic
 	private const float bulletSpeed = 1000;
 	private const float bulletCooldownMax = 0.15F;
 	private float bulletCooldown = bulletCooldownMax;
+	private float asteroidSpawnTimer = 0;
 	private Vector2 shipVelocity;
 	private int points = 0;
 
@@ -120,6 +122,7 @@ public sealed class Asteroids : GameLogic
 		var dt = (float)frameTimer.Elapsed.TotalSeconds;
 		frameTimer.Restart();
 		bulletCooldown = MathF.Max(bulletCooldown - dt, 0F);
+		asteroidSpawnTimer = MathF.Max(asteroidSpawnTimer - dt, 0F);
 
 		var inputModule = InputModule.Instance;
 		var wnd = WindowManager.GameWindow!;
@@ -134,7 +137,6 @@ public sealed class Asteroids : GameLogic
 		}
 
 		float speed = shipVelocity.Length;
-		// Braking shrinks the speed toward 0 along the current direction; the clamp at 0 means it never reverses.
 		float deceleration = friction + (braking ? brakeDeceleration : 0f);
 		speed = MathF.Max(0f, speed - deceleration * dt);
 		speed = MathF.Min(speed, maxShipSpeed);
@@ -169,16 +171,18 @@ public sealed class Asteroids : GameLogic
 			engine.PlayOneShot(fireBuffer);
 		}
 
-		if (asteroids.Count < maxAsteroidCount && asteroids.Count < 1)
+		if (asteroids.Count < maxAsteroidCount && asteroidSpawnTimer <= 0)
 		{
+			asteroidSpawnTimer = maxAsteroidSpawnTimer;
 			var radius = RandomRadiusInAnnulus(ship.Size.Length * 2F, ship.Size.Length * 2.5F);
 			var angle = rnd.NextSingle() * MathF.Tau;
 
 			var offset = radius * RotateAround(Vector2.UnitY, angle, Vector2.Zero);
-			var frame = rnd.Next(0, 2);
+			var frame = rnd.Next(1, 3);
 			Sprite asteroid = asteroidAtlas[frame, 0];
 			asteroid.Position = ship.Position + offset;
-			asteroid.Rotation = angle;
+			const float spread = MathF.PI / 3;
+			asteroid.Rotation = angle + MathF.PI + (rnd.NextSingle() * 2 - 1) * spread;
 			
 			asteroids.Add(new(asteroid, frame));
 			RendererModule.Drawables.Add(asteroid);
