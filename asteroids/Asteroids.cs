@@ -215,13 +215,13 @@ public sealed class Asteroids : GameLogic
 			{
 				continue;
 			}
+			engine.PlayOneShot(explodeBuffer, new AudioOneShotSettings() with { Volume = 0.15F });
 			if (col.Frame == asteroidAtlas.TileCount - 1)
 			{
 				asteroids.Remove(colliding);
 				RendererModule.Drawables.Remove(colliding.Sprite);
 				continue;
 			}
-			engine.PlayOneShot(explodeBuffer, new AudioOneShotSettings() with { Volume = 0.15F });
 
 			RendererModule.Drawables.Remove(colliding.Sprite);
 			asteroids.Remove(colliding);
